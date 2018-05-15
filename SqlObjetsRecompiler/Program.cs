@@ -12,12 +12,15 @@ namespace SqlObjetsRecompiler
 
     public static class Program
     {
-        public static void Main(string[] args)
+        public static int Main(string[] args)
         {
             var serverName = ".";
             var databaseName = "master";
+            var errorCount = 0;
             args.GetArgumentValue("-S", v => serverName = v)
-                .GetArgumentValue("-d", v => databaseName = v);
+                .GetArgumentValue("-d", v => databaseName = v)
+                ;
+
             using (var conn = new SqlConnection($"server={serverName};database={databaseName};trusted_connection=true;"))
             {
                 var server = new Server(new ServerConnection(conn));
@@ -54,27 +57,28 @@ namespace SqlObjetsRecompiler
                         $"Trigger {t.Table.Schema}.{t.Table.Name}.{t.Trigger.Name}", @"CREATE\s+TRIGGER",
                         "ALTER TRIGGER"));
 
-                (from s in db.StoredProcedures.Cast<StoredProcedure>()
+                errorCount += (from s in db.StoredProcedures.Cast<StoredProcedure>()
                         where !s.IsSystemObject
                         select s
-                    ).ForEach(s => ScriptObject(db, s.Script(scriptingOptions), $"Stored proc {s.Schema}.{s.Name}",
+                    ).Sum(s => ScriptObject(db, s.Script(scriptingOptions), $"Stored proc {s.Schema}.{s.Name}",
                         @"CREATE\s+PROCEDURE", "ALTER PROCEDURE"));
 
-                (from f in db.UserDefinedFunctions.Cast<UserDefinedFunction>()
+                errorCount += (from f in db.UserDefinedFunctions.Cast<UserDefinedFunction>()
                         where !f.IsSystemObject
                         select f
-                    ).ForEach(f => ScriptObject(db, f.Script(scriptingOptions), $"Function {f.Schema}.{f.Name}",
+                    ).Sum(f => ScriptObject(db, f.Script(scriptingOptions), $"Function {f.Schema}.{f.Name}",
                         @"CREATE\s+FUNCTION", "ALTER FUNCTION"));
 
-                (from v in db.Views.Cast<View>()
+                errorCount += (from v in db.Views.Cast<View>()
                         where !v.IsSystemObject
                         select v
-                    ).ForEach(v => ScriptObject(db, v.Script(scriptingOptions), $"View {v.Schema}.{v.Name}",
+                    ).Sum(v => ScriptObject(db, v.Script(scriptingOptions), $"View {v.Schema}.{v.Name}",
                         @"CREATE\s+VIEW", "ALTER VIEW"));
+                return errorCount;
             }
         }
 
-        static void ScriptObject(Database db, StringCollection script, string name, string createStatement, string alterStatement)
+        static int ScriptObject(Database db, StringCollection script, string name, string createStatement, string alterStatement)
         {
             var sql = new StringCollection();
             sql.AddRange(script
@@ -89,6 +93,7 @@ namespace SqlObjetsRecompiler
             {
                 db.ExecuteNonQuery(sql);
                 Console.WriteLine($"Recompiled {name}.");
+                return 0;
             }
             catch (Exception e)
             {
@@ -100,6 +105,7 @@ namespace SqlObjetsRecompiler
                 Console.Error.WriteLine(new string('=', name.Length));
                 Console.Error.WriteLine(sql);
                 Console.Error.WriteLine(new string('=', name.Length));
+                return 1;
             }
         }
     }
