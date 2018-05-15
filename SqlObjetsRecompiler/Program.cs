@@ -95,6 +95,8 @@ namespace SqlObjetsRecompiler
                 Console.Error.WriteLine(new string('=', name.Length));
                 Console.Error.WriteLine(name);
                 Console.Error.WriteLine(e.Message);
+                if(e.InnerException!=null)
+                    Console.Error.WriteLine(e.InnerException.Message);
                 Console.Error.WriteLine(new string('=', name.Length));
                 Console.Error.WriteLine(sql);
                 Console.Error.WriteLine(new string('=', name.Length));
