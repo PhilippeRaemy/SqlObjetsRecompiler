@@ -46,10 +46,24 @@ namespace SqlObjetsRecompiler
             var db = server.Databases[databaseName];
             Console.WriteLine(db.Name);
             Console.WriteLine(new string('#', db.Name.Length));
-            foreach (Table table in db.Tables)
-                foreach (Trigger t in table.Triggers)                  ScriptObject(db, t.Script(scriptingOptions), $"Trigger {table.Schema}.{table.Name}.{t.Name}", @"CREATE\s+TRIGGER"  , "ALTER TRIGGER"  );
-            foreach (StoredProcedure s in db.StoredProcedures)         ScriptObject(db, s.Script(scriptingOptions), $"Stored proc {s.Schema}.{s.Name}",              @"CREATE\s+PROCEDURE", "ALTER PROCEDURE");
-            foreach (UserDefinedFunction f in db.UserDefinedFunctions) ScriptObject(db, f.Script(scriptingOptions), $"Function {f.Schema}.{f.Name}",                 @"CREATE\s+FUNCTION" , "ALTER FUNCTION" );
+            (from table in db.Tables.Cast<Table>()
+                    where !table.IsSystemObject
+                    from trigger in table.Triggers.Cast<Trigger>()
+                    select (Table: table, Trigger: trigger)
+                ).ForEach(t => ScriptObject(db, t.Trigger.Script(scriptingOptions),
+                    $"Trigger {t.Table.Schema}.{t.Table.Name}.{t.Trigger.Name}", @"CREATE\s+TRIGGER", "ALTER TRIGGER"));
+
+            (from s in db.StoredProcedures.Cast<StoredProcedure>()
+                    where !s.IsSystemObject
+                    select s
+                ).ForEach(s => ScriptObject(db, s.Script(scriptingOptions), $"Stored proc {s.Schema}.{s.Name}",
+                    @"CREATE\s+PROCEDURE", "ALTER PROCEDURE"));
+
+            (from f in db.UserDefinedFunctions.Cast<UserDefinedFunction>()
+                    where !f.IsSystemObject
+                    select f
+                ).ForEach(f => ScriptObject(db, f.Script(scriptingOptions), $"Function {f.Schema}.{f.Name}",
+                    @"CREATE\s+FUNCTION", "ALTER FUNCTION"));
         }
 
         static void ScriptObject(Database db, StringCollection script, string name, string createStatement, string alterStatement)
