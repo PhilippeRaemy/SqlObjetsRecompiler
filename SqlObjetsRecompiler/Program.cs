@@ -64,6 +64,12 @@ namespace SqlObjetsRecompiler
                     select f
                 ).ForEach(f => ScriptObject(db, f.Script(scriptingOptions), $"Function {f.Schema}.{f.Name}",
                     @"CREATE\s+FUNCTION", "ALTER FUNCTION"));
+
+            (from v in db.Views.Cast<View>()
+                    where !v.IsSystemObject
+                    select v
+                ).ForEach(v => ScriptObject(db, v.Script(scriptingOptions), $"View {v.Schema}.{v.Name}",
+                    @"CREATE\s+VIEW", "ALTER VIEW"));
         }
 
         static void ScriptObject(Database db, StringCollection script, string name, string createStatement, string alterStatement)
