@@ -17,10 +17,9 @@ namespace SqlObjetsRecompiler
             var serverName = ".";
             var databaseName = "master";
             var errorCount = 0;
-            args.GetArgumentValue("-S", v => serverName = v)
-                .GetArgumentValue("-d", v => databaseName = v)
-                ;
-            if (args.Any())
+            if (args.GetArgumentValue("-S", v => serverName = v)
+                    .GetArgumentValue("-d", v => databaseName = v)
+                    .Any())
             {
                 Console.WriteLine("SqlObjetsRecompiler usage is ");
                 Console.WriteLine("SqlObjetsRecompiler [-S Servername] [-d DatabaseName]");
