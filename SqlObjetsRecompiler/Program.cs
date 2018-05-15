@@ -20,6 +20,13 @@ namespace SqlObjetsRecompiler
             args.GetArgumentValue("-S", v => serverName = v)
                 .GetArgumentValue("-d", v => databaseName = v)
                 ;
+            if (args.Any())
+            {
+                Console.WriteLine("SqlObjetsRecompiler usage is ");
+                Console.WriteLine("SqlObjetsRecompiler [-S Servername] [-d DatabaseName]");
+                Console.WriteLine("    with defaults -S . -d master");
+                return -1;
+            }
 
             using (var conn = new SqlConnection($"server={serverName};database={databaseName};trusted_connection=true;"))
             {
